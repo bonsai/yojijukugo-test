@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>四字熟語テスト</title>
+<style>
+  body { font-family: sans-serif; background: #f7f3ea; color: #222; margin: 0; padding: 16px; }
+  main { max-width: 560px; margin: 0 auto; }
+  h1 { font-size: 1.4rem; text-align: center; }
+  .sub { text-align: center; color: #666; font-size: .9rem; }
+  #idiom { font-size: 3rem; text-align: center; letter-spacing: .2em; margin: 28px 0 4px; }
+  #reading { text-align: center; color: #555; margin-bottom: 20px; }
+  .choices { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .choices button { font-size: 1.6rem; padding: 14px; border: 2px solid #888; border-radius: 10px; background: #fff; cursor: pointer; }
+  .choices button:disabled { opacity: .55; cursor: default; }
+  .choices button.right { background: #d8f3dc; border-color: #2d6a4f; }
+  .choices button.wrong { background: #ffe3e3; border-color: #c92a2a; }
+  #meaning { min-height: 3em; margin: 16px 0; text-align: center; }
+  #next { display: none; width: 100%; font-size: 1.1rem; padding: 12px; border: none; border-radius: 10px; background: #2d6a4f; color: #fff; cursor: pointer; }
+  #status { text-align: center; color: #555; margin-top: 10px; }
+  #result { text-align: center; font-size: 1.3rem; margin-top: 24px; }
+  #again { display: none; width: 100%; font-size: 1.1rem; padding: 12px; border: none; border-radius: 10px; background: #2d6a4f; color: #fff; cursor: pointer; margin-top: 12px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>四字熟語テスト</h1>
+  <p class="sub">あいているマスに入る漢字をえらんでください</p>
+  <div id="idiom"></div>
+  <div id="reading"></div>
+  <div class="choices" id="choices"></div>
+  <p id="meaning"></p>
+  <button id="next">つぎへ</button>
+  <p id="status"></p>
+  <div id="result"></div>
+  <button id="again">もう一度</button>
+</main>
+<script>
+const DATA = [
+  { idiom: "一期一会", reading: "いちごいちえ", meaning: "一生に一度の出会いを大切にすること" },
+  { idiom: "四面楚歌", reading: "しめんそか", meaning: "まわりが敵ばかりで孤立すること" },
+  { idiom: "弱肉強食", reading: "じゃくにくきょうしょく", meaning: "弱いものが強いもののえじきになること" },
+  { idiom: "切磋琢磨", reading: "せっさたくま", meaning: "仲間とたがいに励まし合って向上すること" },
+  { idiom: "温故知新", reading: "おんこちしん", meaning: "古いことを学んで新しい知識を得ること" },
+  { idiom: "臥薪嘗胆", reading: "がしんしょうたん", meaning: "目的のために長い苦労に耐えること" },
+  { idiom: "七転八起", reading: "しちてんはっき", meaning: "何度倒れても立ち上がること" },
+  { idiom: "十人十色", reading: "じゅうにんといろ", meaning: "人それぞれ好みや考えがちがうこと" },
+  { idiom: "千載一遇", reading: "せんざいいちぐう", meaning: "めったにない絶好の機会" },
+  { idiom: "馬耳東風", reading: "ばじとうふう", meaning: "人の意見を聞き流すこと" },
+  { idiom: "異口同音", reading: "いくどうおん", meaning: "みんなが口をそろえて同じことを言うこと" },
+  { idiom: "我田引水", reading: "がでんいんすい", meaning: "自分の都合のいいように物事を運ぶこと" }
+];
+const ALL_KANJI = [...new Set(DATA.flatMap(d => [...d.idiom]))];
+let order = [], idx = 0, score = 0, blankPos = 0, answer = "";
+
+function shuffle(a) {
+  a = [...a];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+function start() {
+  order = shuffle(DATA);
+  idx = 0; score = 0;
+  document.getElementById("result").textContent = "";
+  document.getElementById("again").style.display = "none";
+  show();
+}
+function show() {
+  const d = order[idx];
+  blankPos = Math.floor(Math.random() * 4);
+  answer = d.idiom[blankPos];
+  const shown = [...d.idiom].map((c, i) => i === blankPos ? "○" : c).join("");
+  document.getElementById("idiom").textContent = shown;
+  document.getElementById("reading").textContent = d.reading;
+  document.getElementById("meaning").textContent = "";
+  document.getElementById("next").style.display = "none";
+  document.getElementById("status").textContent = (idx + 1) + " / " + order.length + " 問　スコア " + score;
+  const box = document.getElementById("choices");
+  box.innerHTML = "";
+  const opts = shuffle([answer, ...shuffle(ALL_KANJI.filter(k => k !== answer)).slice(0, 3)]);
+  for (const o of opts) {
+    const b = document.createElement("button");
+    b.textContent = o;
+    b.onclick = () => pick(b, o, d);
+    box.appendChild(b);
+  }
+}
+function pick(btn, o, d) {
+  document.querySelectorAll(".choices button").forEach(b => b.disabled = true);
+  if (o === answer) { btn.classList.add("right"); score++; }
+  else {
+    btn.classList.add("wrong");
+    document.querySelectorAll(".choices button").forEach(b => { if (b.textContent === answer) b.classList.add("right"); });
+  }
+  document.getElementById("idiom").textContent = d.idiom;
+  document.getElementById("meaning").textContent = d.meaning;
+  document.getElementById("status").textContent = (idx + 1) + " / " + order.length + " 問　スコア " + score;
+  document.getElementById("next").style.display = "block";
+}
+document.getElementById("next").onclick = () => {
+  idx++;
+  if (idx >= order.length) {
+    document.getElementById("idiom").textContent = "";
+    document.getElementById("reading").textContent = "";
+    document.getElementById("choices").innerHTML = "";
+    document.getElementById("meaning").textContent = "";
+    document.getElementById("next").style.display = "none";
+    document.getElementById("status").textContent = "";
+    document.getElementById("result").textContent = "結果：" + score + " / " + order.length + " 点";
+    document.getElementById("again").style.display = "block";
+  } else show();
+};
+document.getElementById("again").onclick = start;
+start();
+</script>
+</body>
+</html>
